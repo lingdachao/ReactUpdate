@@ -23,11 +23,20 @@ const instructions = Platform.select({
 
 class App extends Component {
 
+  constructor(){
+    super();
+    this.state = {
+      syncMessage: '',
+      progress: 0,
+    }
+  }
 
+  //简单更新
   sync() {
     CodePush.sync();
   }
 
+  //配置更新
   syncImmediate() {
    CodePush.sync({ 
       installMode: CodePush.InstallMode.ON_NEXT_RESTART,//启动模式三种：ON_NEXT_RESUME、ON_NEXT_RESTART、IMMEDIATE
@@ -41,22 +50,66 @@ class App extends Component {
           optionalUpdateMessage: '有新版本了，是否更新？',//非强制更新时，更新通知. Defaults to “An update is available. Would you like to install it?”.
           title: '更新提示'//要显示的更新通知的标题. Defaults to “Update available”.
         }},
+        this.codePushStatusDidChange.bind(this),
+        this.codePushDownloadDidProgress.bind(this),
     );
   }
 
+  //更新回调
+  codePushStatusDidChange(syncStatus) {
+    switch(syncStatus) {
+      case CodePush.SyncStatus.CHECKING_FOR_UPDATE:
+        this.setState({ syncMessage: "Checking for update." });
+        break;
+      case CodePush.SyncStatus.DOWNLOADING_PACKAGE:
+        this.setState({ syncMessage: "Downloading package." });
+        break;
+      case CodePush.SyncStatus.AWAITING_USER_ACTION:
+        this.setState({ syncMessage: "Awaiting user action." });
+        break;
+      case CodePush.SyncStatus.INSTALLING_UPDATE:
+        this.setState({ syncMessage: "Installing update." });
+        break;
+      case CodePush.SyncStatus.UP_TO_DATE:
+        this.setState({ syncMessage: "App up to date.", progress: 0 });
+        break;
+      case CodePush.SyncStatus.UPDATE_IGNORED:
+        this.setState({ syncMessage: "Update cancelled by user.", progress: 0 });
+        break;
+      case CodePush.SyncStatus.UPDATE_INSTALLED:
+        this.setState({ syncMessage: "Update installed and will be applied on restart.", progress: 0 });
+        break;
+      case CodePush.SyncStatus.UNKNOWN_ERROR:
+        this.setState({ syncMessage: "An unknown error occurred.", progress: 0 });
+        break;
+    }
+  }
+  
+  //更新进度
+  codePushDownloadDidProgress(progress) {
+    this.setState({ progress });
+  }
+
   componentWillMount(){
-    CodePush.disallowRestart();
+    //禁止更新
+    // CodePush.disallowRestart();
   }
 
   componentDidMount() {
-    CodePush.allowRestart();
+    //启动检测更新
+    // CodePush.allowRestart();
+    this.syncImmediate();
   }
 
   render() {
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>
-          Welcome to React Native!
+         Welcome to React Native!
+        </Text>
+        {/* <Text>{this.state.progress}</Text> */}
+        <Text style={styles.welcome}>
+          {this.state.syncMessage}
         </Text>
         <TouchableOpacity onPress={this.sync.bind(this)}>
           <Text style={styles.syncButton}>Press for background sync</Text>
@@ -65,7 +118,7 @@ class App extends Component {
           <Text style={styles.syncButton}>Press for dialog-driven sync</Text>
         </TouchableOpacity>
       </View>
-    );
+    );    
   }
 }
 
@@ -74,12 +127,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5FCFF',
+    backgroundColor: 'blue',
   },
   welcome: {
     fontSize: 20,
     textAlign: 'center',
-    margin: 10,
+    margin: 10, 
   },
   instructions: {
     textAlign: 'center',
